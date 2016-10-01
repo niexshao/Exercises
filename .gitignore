@@ -1,0 +1,19 @@
+*~
+*#*
+
+# CABAL
+/dist
+/cabal-dev
+/.cabal-sandbox
+/cabal.sandbox.config
+
+# darcs
+/_darcs
+
+# ctags
+TAGS
+
+*.swp
+
+# Stack
+.stack-work/

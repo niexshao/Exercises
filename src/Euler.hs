@@ -1,0 +1,239 @@
+-- | Euler project with haskell solutions
+module Euler where
+
+import Data.List
+import Data.Char
+import Data.Array
+import Data.Scientific (fromRationalRepetend, formatScientific, FPFormat(..))
+import Data.Ratio ((%))
+import Data.Function (on)
+-- problem 18
+inputp18 :: [[Integer]]
+inputp18 =
+  [ [75]
+  , [95, 64]
+  , [17, 47, 82]
+  , [18, 35, 87, 10]
+  , [20, 04, 82, 47, 65]
+  , [19, 01, 23, 75, 03, 34]
+  , [88, 02, 77, 73, 07, 63, 67]
+  , [99, 65, 04, 28, 06, 16, 70, 92]
+  , [41, 41, 26, 56, 83, 40, 80, 70, 33]
+  , [41, 48, 72, 33, 47, 32, 37, 16, 94, 29]
+  , [53, 71, 44, 65, 25, 43, 91, 52, 97, 51, 14]
+  , [70, 11, 33, 28, 77, 73, 17, 78, 39, 68, 17, 57]
+  , [91, 71, 52, 38, 17, 14, 91, 43, 58, 50, 27, 29, 48]
+  , [63, 66, 04, 68, 89, 53, 67, 30, 73, 16, 69, 87, 40, 31]
+  , [04, 62, 98, 27, 23, 09, 70, 98, 73, 93, 38, 53, 60, 04, 23]]
+p18 :: [[Integer]] -> Integer
+p18 = maximum . foldl1' cojoin
+  where
+    cojoin acc new =
+      let
+        fstnum = zipWith (+) acc (init new)
+        sndnum = zipWith (+) acc (tail new)
+        part = (zipWith max (tail fstnum) (init sndnum))
+      in (head fstnum) : part  ++ [last sndnum]
+-- problem 67
+p67 :: IO ()
+p67 = do
+  out <- readFile "src/assets/p67.txt"
+  let out' = (map . map) read . map words . lines $ out
+  print $ p18 out'
+
+
+-- problem 19
+data Month = Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct | Nov | Dec deriving (Eq, Show, Bounded, Ord, Enum)
+type Day = Int
+type Year = Int
+type Date = (Year, Month, Day)
+makeDate :: Year -> Month -> Day -> Maybe Date
+makeDate year mon day =
+  let days =
+        if mon `elem` [Jan, Mar, May, Jul, Aug, Oct, Dec]
+        then 31
+        else if mon `elem` [Apr, Jun, Sep, Nov]
+        then 30
+        else if (mod year 4 == 0 && mod year 100 /= 0) ||
+                (mod year 400 == 0 && mod year 100 == 0)
+        then 29
+        else 28
+  in if (0 < year) && (0 < day) && (day <= days)
+     then Just (year, mon, day)
+     else Nothing
+p19 :: IO ()
+p19 = do
+  let join acc Nothing = acc
+      join acc (Just x) = x:acc
+      dates = foldl' join []
+              (makeDate <$> [1900..2000] <*> [Jan .. Dec] <*> [1..31])
+      week = cycle [1..7]
+      output = filter (\((year, _, da), we) ->
+                         year >= 1901 &&  da == 1 && we == 7)
+               (zip (sort dates) week)
+  print (length output)
+
+-- p20
+p20 :: Integer -> Integer
+p20 upper =
+  sum . map (\x -> read [x]) . show . product $ [1..upper]
+
+-- p21
+-- it's slow, maybe should remove lookup part
+p21 :: Integer -> [Integer]
+p21 n =
+  let
+    dvalue n' = sum . filter (\x -> mod n' x == 0) $ [1..n'-1]
+    dvalues = map dvalue [1..n]
+    pairAmi = filter (not . uncurry (==)) . zip [1..n] $ dvalues
+    check (x, xpair) acc = case lookup xpair pairAmi of
+      Nothing -> acc
+      Just y -> if y == x then x : acc else acc
+    numAmi = foldr check [] pairAmi
+  in numAmi
+
+-- problem 22
+nameBase :: String -> Integer
+nameBase = toInteger . sum . map ord'
+  where ord' c = ord c - ord 'A' + 1
+p22 :: IO ()
+p22 = do
+  text <- readFile "src/assets/p22.txt"
+  let input = map nameBase . sort . read $ text
+  print . sum $ (zipWith (*) input [1..])
+
+-- problem 23
+-- Too much time spent here
+-- should avoid `elem` for large lists
+-- try use Data.array (learn form google)
+divisorsum :: Integer -> Integer
+divisorsum num = if num == 1 then 1 else sum . init . divs $ num
+  where divs n =
+          let r = floor . sqrt . fromIntegral $ n
+              (a, b) = unzip $ [(q, d) | q<-[1..r], let (d, r') = quotRem n q, r' == 0]
+          in if r*r == n then a ++ (tail (reverse b))
+                         else a ++ reverse b
+
+p23' :: IO ()
+p23'= do
+  let upper = 28123
+      aboundNumbers = filter (\x -> x < divisorsum x) [1..upper]
+      -- aboundSums = makesum <$> aboundNumbers <*> aboundNumbers
+      out = filter (\x -> any (`elem` aboundNumbers) (map (\y -> y-x) aboundNumbers)) [1..upper]
+  print (sum [1..upper] - (sum out))
+
+p23 :: IO ()
+p23 = do
+  let
+    upper = 28123
+    aboundNumbers = listArray (1, upper) (map (\x -> x < divisorsum x) [1..upper])
+    abounds = filter (aboundNumbers !) [1..upper]
+    remainders x = map (x-) $ takeWhile (\y -> y <= x `quot` 2) abounds
+    aboundSum = filter (any (aboundNumbers !) . remainders) [1..upper]
+    out = (sum [1..upper]) - (sum aboundSum)
+  print out
+
+-- problem 24
+p24 :: String
+p24 = last . take 1000000 . sort . permutations $ ['0'..'9']
+
+-- problem 25
+fibs :: [Integer]
+fibs = 0:1:(zipWith (+) fibs (tail fibs))
+p25 :: IO ()
+p25 = do
+  let digitstest = (==1000) . length . show
+      (_, a:_) = break (digitstest . snd) (zip [0..] fibs)
+  putStrLn $ show a
+
+-- problem 26
+fractions :: Integer -> String
+fractions n =
+  let go (x:xs) acc = if x `elem` acc then acc else go xs (x:acc)
+      go [] acc = acc
+  in case fromRationalRepetend Nothing (1 % n) of
+       Right (sci, _) -> formatScientific Fixed Nothing sci
+       Left (sci, _) -> formatScientific Fixed Nothing sci
+
+p26 :: IO ()
+p26 =
+  putStrLn . show . maximumBy (compare `on` (length . fractions)) $ [1..1000]
+  -- putStrLn . show . maximum . zip (map (length . fractions) [1..1000]) $ [1..]
+
+-- copy from github, this works too
+-- but i can't figure out why
+cycleLength :: Integer -> Integer
+cycleLength n | even n = 0
+              | n `rem` 5 == 0 = 0
+              | otherwise = head [p | p <- [1..], (10^p - 1) `rem` n == 0]
+p26' :: IO ()
+p26' = print $ maximumBy (compare `on` cycleLength) [1,3..1000]
+
+-- problem 27
+primes :: Array Integer Bool
+primes =
+  let ar =  listArray (0, 1000000) (False:True:True:(map helper [3..1000000]))
+      helper n = all (\x -> mod n x /= 0) [p | p <- [2..(floor . sqrt . fromIntegral $ n)], ar ! p]
+  in ar
+
+
+quadraticsForm :: Integer -> Integer -> Integer
+quadraticsForm a b =
+  let f x = x^2 + a * x + b
+  in toInteger . length $ takeWhile (primes !) (map (abs . f) [0..])
+
+p27 :: IO ()
+p27 = do
+  let limit = 1000
+      cojoin x y = ((x, y), quadraticsForm x y)
+      out = cojoin <$> [(-limit) .. (limit)] <*> [(-limit) .. (limit)]
+  print $ maximumBy (compare `on` snd) out
+
+-- problem 28
+
+p28 :: Int -> Int
+p28 n =
+  let split' :: [Int] -> [Int] -> [[Int]]
+      split' (a:as) bs =
+        let (acc,left) = splitAt a bs
+        in acc : split' as left
+      split' _ _ = []
+
+      cycleGet :: Int -> [Int] -> [Int]
+      cycleGet n xs =
+        let (a, left) = splitAt n xs
+        in if n > length xs then []
+                            else (last a) : cycleGet n left
+      ind = [1..n]
+      lens = map (8*) ind
+      oneSize = map (2*) ind
+  in (+1) . sum . concat . zipWith cycleGet oneSize . split' lens $ [2..(2*n+1)^2]
+
+-- prblem 29
+p29 :: [Integer] -> [Integer] -> Int
+p29 xs ys = length . nub $ (^) <$> xs <*> ys
+-- p29 [2..100] [2..100]
+
+-- problem 30
+-- the fifth power of 9 * 6 = 354294 < 10^6, so the maximum bound is 10^6
+p30 :: [Integer]
+p30 = filter go [2..10^6]
+  where go n = (==n) . sum . map (\x -> (read [x])^5) . show $ n
+-- sum p30
+
+-- problem 31
+-- 1p, 2p, 5p, 10p, 20p, 50p, £1 (100p) and £2 (200p).
+exchange :: Int -> Int
+exchange n =
+  let coins = [1,2,5,10,20,50,100,200]
+      ar = listArray (0, n) (1:map go [1..n])
+      go n' = sum . map ((ar !). (n'-)) . filter (<=n') $ coins
+  in ar ! n
+p31 :: Int -> Int
+p31 n =
+  let coins = [1,2,5,10,20,50,100,200]
+      maxbound = map (\x -> [0 .. (div n x)]) coins
+      f (co, li) acc = (\li' acc' -> co*li'+acc') <$> li <*> acc
+  in length . filter (==n) . foldr f (pure 0) $ (zip coins maxbound)
+frequency :: Ord a => [a] -> [(Int,a)]
+frequency list = map (\l -> (length l, head l)) (group (sort list))

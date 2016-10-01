@@ -1,0 +1,2 @@
+# Exercise
+- Euler Project
