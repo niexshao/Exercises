@@ -7,6 +7,7 @@ import Data.Array
 import Data.Scientific (fromRationalRepetend, formatScientific, FPFormat(..))
 import Data.Ratio ((%))
 import Data.Function (on)
+import Numeric (showIntAtBase)
 -- problem 18
 inputp18 :: [[Integer]]
 inputp18 =
@@ -172,7 +173,7 @@ p26' = print $ maximumBy (compare `on` cycleLength) [1,3..1000]
 -- problem 27
 primes :: Array Integer Bool
 primes =
-  let ar =  listArray (0, 1000000) (False:True:True:(map helper [3..1000000]))
+  let ar =  listArray (0, 1000000) (False:False:True:(map helper [3..1000000]))
       helper n = all (\x -> mod n x /= 0) [p | p <- [2..(floor . sqrt . fromIntegral $ n)], ar ! p]
   in ar
 
@@ -223,17 +224,151 @@ p30 = filter go [2..10^6]
 
 -- problem 31
 -- 1p, 2p, 5p, 10p, 20p, 50p, £1 (100p) and £2 (200p).
-exchange :: Int -> Int
-exchange n =
-  let coins = [1,2,5,10,20,50,100,200]
-      ar = listArray (0, n) (1:map go [1..n])
-      go n' = sum . map ((ar !). (n'-)) . filter (<=n') $ coins
-  in ar ! n
-p31 :: Int -> Int
+-- should walk through all possiable combinations for n
+p31 :: Int -> Maybe Int
 p31 n =
   let coins = [1,2,5,10,20,50,100,200]
       maxbound = map (\x -> [0 .. (div n x)]) coins
-      f (co, li) acc = (\li' acc' -> co*li'+acc') <$> li <*> acc
-  in length . filter (==n) . foldr f (pure 0) $ (zip coins maxbound)
-frequency :: Ord a => [a] -> [(Int,a)]
-frequency list = map (\l -> (length l, head l)) (group (sort list))
+      cojoin = map helper . groupBy ((==) `on` fst) . sortBy (compare `on` fst)
+        where helper xs = case (unzip xs) of
+                (a:_, b) -> (a, sum b)
+                _ -> error "conflicts with condition"
+      f (co, li) acc = cojoin $ g <$> li <*> acc
+        where g li' (acc', fre) = (co*li'+acc', fre)
+  in lookup n (foldr f [(0,1)] (zip coins maxbound))
+
+-- problem 32 TODO
+-- inspired by source code for permutations
+-- selections :: [a] -> [(a, [a])]
+-- selections [] = []
+-- selections (x:xs) = (x, xs):[(y, x:ys) | (y, ys) <- selections xs]
+-- group3 :: [a] -> [([a],[a],[a])]
+-- group3 [] = [([],[],[])]
+-- group3 [x] = [([],[],[x])]
+-- group3 [x, y] = [([],[],[x,y]), ([],[],[y,x]), ([],[x],[y]), ([],[y],[x])]
+-- group3 xs = concat [[(a:a', b:b', c'), (a', b', a:b:c'), (a', b:b', a:c'), (a:a',b',b:c')] |
+--              (a, as) <- selections xs,
+--              (b, bs) <- selections as,
+--              (a', b', c') <- group3 bs]
+
+-- toInt xs = sum $ zipWith (*) xs [10^i | i<- [0..]]
+-- p32 = filter test . group3 $ [1..9]
+--   where
+--     notnull = not . null
+--     test (as, bs, cs) = (notnull as) && (notnull bs) && (notnull cs) &&
+--       length as <= length cs && length bs <= length cs &&
+--       (toInt as) * (toInt bs) == (toInt cs)
+-- test xs = [(x, y, zs) |
+--            (x, ys) <- selections xs,
+--            (y, zs) <- selections ys]
+
+-- problem 34
+-- since 9! = 362880*6 < 10^6, so the upper bound must be 10^6
+p34 :: [Integer]
+p34 = filter checkp34 [10 .. (10^6)]
+  where factorial :: Integer -> Integer
+        factorial n = product [1..n]
+        checkp34 :: Integer -> Bool
+        checkp34 n =
+          (==n) . sum . map (factorial . read . (:[])) . show $ n
+
+-- problem 35
+-- circular primes, note the primes has just bounds [0,1000000]
+p35 :: [Integer]
+p35 = filter checkCicular (filter (primes !) [2..1000000])
+  where checkCicular :: Integer -> Bool
+        checkCicular n = all (primes !) (rotations n)
+        rotations n =
+          let ns = map (read . (:[])) . show $ n
+              len = length ns
+              toInt xs = sum $ zipWith (*) [10^i | i<-[0..]] (reverse xs)
+              new ind =
+                let (a, b) = splitAt ind ns
+                in toInt (b ++ a)
+          in map new [1..len-1]
+
+-- problem 36
+p36 :: Integer
+p36 = sum . filter palindNum $ [1..1000000]
+  where palindromic xs = xs == (reverse xs)
+        palindNum n = all palindromic [showIntAtBase 10 intToDigit n "",
+                                       showIntAtBase 2 intToDigit n ""]
+
+-- problem 37
+p37 :: [Integer]
+p37 = take 11 . filter truncatablePrime . filter (primes !) $ [11..]
+  where truncatablePrime = all (primes !) . deletes
+        deletes n =
+          let ns = map (read . (:[])) . show $ n
+              goleft [] = []
+              goleft al@(_:xs) = al : goleft xs
+              goright = map reverse . goleft . reverse
+              toInt xs = sum $ zipWith (*) [10^i | i<-[0..]] (reverse xs)
+          in map toInt (goleft (tail ns) ++ goright (init ns))
+
+-- problem 38
+-- the maximum bound is 987654321
+p38 :: [(Bool, Maybe String)]
+p38 = sortBy (compare `on` snd) . filter fst . map pandigital $ [1..9876]
+  where
+    pandigital :: Int -> (Bool, Maybe String)
+    pandigital n =
+      let ns = map (show . (n*)) [1..9]
+          out = dropWhile ((/="123456789") . sort) . map (concat . flip take ns) $ [2..length ns]
+      in if null out then (False, Nothing) else (True, Just (head out))
+
+-- problem 39
+-- | m must be bigger than 3
+p39 :: Int -> (Int, Int)
+p39 m =
+  let tris n = [(a,b,c) | c <- [(div n 3) .. (div n 2)]
+                        , b <- [(div n 4)..c]
+                        , let a = n-c-b
+                        , a < b
+                        , 0 < a
+                        , a^2+b^2==c^2]
+  in maximumBy (compare `on` snd) . map (\x -> (x, length . tris $ x)) $ [1..m]
+
+-- problem 40
+-- | simple, just concate the number
+p40 :: Int
+p40 =
+  let ns = concatMap show [1..]
+      ind = [1, 10, 100, 1000, 10000, 100000, 1000000]
+  in product (map (digitToInt . (ns !!) . (\x -> x-1)) ind)
+
+-- problem 41
+-- | time consume too much, so i just chek from take 1 numbers, take 2 numbers, and then stop at 7
+p41 :: [Integer]
+p41 = filter (\n -> n `elem` (takeWhile (<=n) primes')) .
+      map toInt . permutations . reverse . take 7 $ [1..9]
+      -- note that permutations itself generate number in ordering if input are ordering
+  where toInt xs = sum $ zipWith (*) [10^i | i<-[0..]] (reverse xs)
+        primes' = 2:3:(filter check [5,7..])
+          where check n = all (\x -> mod n x /= 0) (takeWhile (< cir) primes')
+                  where cir = floor . sqrt . fromIntegral $ n
+
+
+-- problem 42
+p42 :: IO ()
+p42 = do
+  out <- readFile "src/assets/p42.txt"
+  let ns = [(n+1)*n `div` 2 | n <- [1..]]
+      inns n = (==n) . head . dropWhile (<n) $ ns
+      wordValue = sum . map (\c -> ord c - ord 'A' + 1)
+      content = filter inns . map wordValue . read $ out
+  print $ length content
+
+-- preblem 43
+p43 :: Int
+p43 = sum . map toInt . filter subdiv . permutations $ [0..9]
+  where toInt xs = sum $ zipWith (*) [10^i | i<-[0..]] (reverse xs)
+        subdiv xs = go (tail xs) [2,3,5,7,11,13,17]
+          where go _ [] = True
+                go (x:y:z:zs) (a:as) = rem (toInt (x:y:z:[])) a == 0 &&
+                                       go (y:z:zs) as
+                go _ _ = False
+
+-- problem 44
+pentagonal = map (\n -> div (n*(3*n-1)) 2) [1..]
+p44 = undefined

@@ -16,6 +16,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Euler
+                       CodeWars
   build-depends:       scientific
                      , array >= 0.5.1.1
                      , base >= 4.7 && < 5
