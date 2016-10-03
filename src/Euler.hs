@@ -1,4 +1,4 @@
--- | Euler project with haskell solutions
+-- Euler project with haskell solutions
 module Euler where
 
 import Data.List
@@ -8,6 +8,13 @@ import Data.Scientific (fromRationalRepetend, formatScientific, FPFormat(..))
 import Data.Ratio ((%))
 import Data.Function (on)
 import Numeric (showIntAtBase)
+
+-- $setup
+-- >>> import Control.Applicative
+-- >>> import Test.QuickCheck
+-- >>> newtype Small = Small Int deriving Show
+-- >>> instance Arbitrary Small where arbitrary = Small . (`mod` 100) <$> arbitrary
+
 -- problem 18
 inputp18 :: [[Integer]]
 inputp18 =
@@ -318,7 +325,7 @@ p38 = sortBy (compare `on` snd) . filter fst . map pandigital $ [1..9876]
       in if null out then (False, Nothing) else (True, Just (head out))
 
 -- problem 39
--- | m must be bigger than 3
+-- m must be bigger than 3
 p39 :: Int -> (Int, Int)
 p39 m =
   let tris n = [(a,b,c) | c <- [(div n 3) .. (div n 2)]
@@ -330,7 +337,7 @@ p39 m =
   in maximumBy (compare `on` snd) . map (\x -> (x, length . tris $ x)) $ [1..m]
 
 -- problem 40
--- | simple, just concate the number
+-- simple, just concate the number
 p40 :: Int
 p40 =
   let ns = concatMap show [1..]
@@ -338,7 +345,7 @@ p40 =
   in product (map (digitToInt . (ns !!) . (\x -> x-1)) ind)
 
 -- problem 41
--- | time consume too much, so i just chek from take 1 numbers, take 2 numbers, and then stop at 7
+-- time consume too much, so i just chek from take 1 numbers, take 2 numbers, and then stop at 7
 p41 :: [Integer]
 p41 = filter (\n -> n `elem` (takeWhile (<=n) primes')) .
       map toInt . permutations . reverse . take 7 $ [1..9]
@@ -372,3 +379,14 @@ p43 = sum . map toInt . filter subdiv . permutations $ [0..9]
 -- problem 44
 pentagonal = map (\n -> div (n*(3*n-1)) 2) [1..]
 p44 = undefined
+
+-- | Use doctest to test results
+-- | this is just for init
+-- 
+-- prop> \(Small n) -> fib n == fib (n+2) - fib (n+1)
+fib :: Int -> Int
+fib n =
+  let fibs = 0:1:(zipWith (+) fibs (tail fibs))
+  in fibs !! n
+
+
