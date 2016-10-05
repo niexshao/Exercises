@@ -376,13 +376,20 @@ p43 = sum . map toInt . filter subdiv . permutations $ [0..9]
                                        go (y:z:zs) as
                 go _ _ = False
 
--- problem 44
-pentagonal = map (\n -> div (n*(3*n-1)) 2) [1..]
-p44 = undefined
+-- problem 44 TODO
+-- pentagon  = map (\n -> div (n*(3*n-1)) 2) [1..]
+-- checkpentagon n = (n `elem`) . takeWhile (<=n) $ pentagon
+-- -- test (i, j) = (checkpentagon (i+j) || checkpentagon (i-j))
+
+-- popTwo :: [(Int, Int)]
+-- popTwo = [(i, j) | i <- pentagon
+--                  , j <- takeWhile (<= (limit i)) pentagon
+--                  , i < j]
+--          where limit n = div (n+1) 3 -1
 
 -- | Use doctest to test results
 -- | this is just for init
--- 
+--
 -- prop> \(Small n) -> fib n == fib (n+2) - fib (n+1)
 fib :: Int -> Int
 fib n =

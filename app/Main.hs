@@ -1,6 +1,7 @@
 module Main where
 
 import Euler
+import OtherStaff
 
 main :: IO ()
-main = print $ p41
+main = print $ distPrime 4
