@@ -12,6 +12,7 @@
 
 # ctags
 TAGS
+tags
 
 *.swp
 

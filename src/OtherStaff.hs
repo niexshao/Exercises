@@ -78,14 +78,35 @@ primes = 2:3:(filter isprime [5,7..])
               lessThan = takeWhile (<= limit) primes
           in all ((/=0) . (m `rem`)) lessThan
 
-consecutivePrime :: Integer -> Integer
-consecutivePrime n =
-  let xli = takeWhile (<=n) primes
-      cumsum [] = []
-      cumsum (x:xs) = x : (map (+x) (cumsum xs))
-      step xs = 
-      step xs = filter (<=n) (reverse . cumsum $ xs)
-      go xs =
-        let out = dropWhile (`notElem` xli) (step xs)
-        in if null out then go (tail xs) else head out
-  in go xli
+-- consecutivePrime :: Integer -> Integer
+-- consecutivePrime n =
+--  let xli = takeWhile (<=n) primes
+--      cumsum [] = []
+--      cumsum (x:xs) = x : (map (+x) (cumsum xs))
+--      step xs = 
+--      step xs = filter (<=n) (reverse . cumsum $ xs)
+--      go xs =
+--        let out = dropWhile (`notElem` xli) (step xs)
+--        in if null out then go (tail xs) else head out
+--  in go xli
+
+
+-- problem 52
+-- permuted multiples
+p52 :: [Integer] -> [Integer]
+p52 ns = map fst . filter hep . map (\m -> (m, (*m) <$> ns)) $ [1..]
+  where hep (x, ys) = let x' = sort . show $ x
+                          ys' = map (sort . show) ys
+                      in all (==x') ys'
+
+-- problem 53
+p53 :: Int
+p53 = length . filter (>1000000). concatMap combine $ [1..100]
+  where fact :: Integer -> Integer
+        fact n = product [1..n]
+        combine :: Integer -> [Integer]
+        combine n = map comb [0..n] where
+          comb i = fact n `div` (fact i * fact (n-i))
+
+data Card =
+  Card Int | Jack | Queen | King | Ace deriving (Eq, Ord, Show)
