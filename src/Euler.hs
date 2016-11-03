@@ -41,7 +41,7 @@ p18 = maximum . foldl1' cojoin
         fstnum = zipWith (+) acc (init new)
         sndnum = zipWith (+) acc (tail new)
         part = (zipWith max (tail fstnum) (init sndnum))
-      in (head fstnum) : part  ++ [last sndnum]
+      in head fstnum : part  ++ [last sndnum]
 -- problem 67
 p67 :: IO ()
 p67 = do
@@ -178,8 +178,8 @@ p26' :: IO ()
 p26' = print $ maximumBy (compare `on` cycleLength) [1,3..1000]
 
 -- problem 27
-primes :: Array Integer Bool
-primes =
+isPrimes :: Array Integer Bool
+isPrimes =
   let ar =  listArray (0, 1000000) (False:False:True:(map helper [3..1000000]))
       helper n = all (\x -> mod n x /= 0) [p | p <- [2..(floor . sqrt . fromIntegral $ n)], ar ! p]
   in ar
@@ -188,13 +188,13 @@ primes =
 quadraticsForm :: Integer -> Integer -> Integer
 quadraticsForm a b =
   let f x = x^2 + a * x + b
-  in toInteger . length $ takeWhile (primes !) (map (abs . f) [0..])
+  in toInteger . length $ takeWhile (isPrimes !) (map (abs . f) [0..])
 
 p27 :: IO ()
 p27 = do
   let limit = 1000
       cojoin x y = ((x, y), quadraticsForm x y)
-      out = cojoin <$> [(-limit) .. (limit)] <*> [(-limit) .. (limit)]
+      out = cojoin <$> [(-limit) .. limit] <*> [(-limit) .. limit]
   print $ maximumBy (compare `on` snd) out
 
 -- problem 28
@@ -280,11 +280,11 @@ p34 = filter checkp34 [10 .. (10^6)]
           (==n) . sum . map (factorial . read . (:[])) . show $ n
 
 -- problem 35
--- circular primes, note the primes has just bounds [0,1000000]
+-- circular isPrimes, note the isPrimes has just bounds [0,1000000]
 p35 :: [Integer]
-p35 = filter checkCicular (filter (primes !) [2..1000000])
+p35 = filter checkCicular (filter (isPrimes !) [2..1000000])
   where checkCicular :: Integer -> Bool
-        checkCicular n = all (primes !) (rotations n)
+        checkCicular n = all (isPrimes !) (rotations n)
         rotations n =
           let ns = map (read . (:[])) . show $ n
               len = length ns
@@ -303,8 +303,8 @@ p36 = sum . filter palindNum $ [1..1000000]
 
 -- problem 37
 p37 :: [Integer]
-p37 = take 11 . filter truncatablePrime . filter (primes !) $ [11..]
-  where truncatablePrime = all (primes !) . deletes
+p37 = take 11 . filter truncatablePrime . filter (isPrimes !) $ [11..]
+  where truncatablePrime = all (isPrimes !) . deletes
         deletes n =
           let ns = map (read . (:[])) . show $ n
               goleft [] = []
@@ -347,12 +347,12 @@ p40 =
 -- problem 41
 -- time consume too much, so i just chek from take 1 numbers, take 2 numbers, and then stop at 7
 p41 :: [Integer]
-p41 = filter (\n -> n `elem` (takeWhile (<=n) primes')) .
+p41 = filter (\n -> n `elem` (takeWhile (<=n) isPrimes')) .
       map toInt . permutations . reverse . take 7 $ [1..9]
       -- note that permutations itself generate number in ordering if input are ordering
   where toInt xs = sum $ zipWith (*) [10^i | i<-[0..]] (reverse xs)
-        primes' = 2:3:(filter check [5,7..])
-          where check n = all (\x -> mod n x /= 0) (takeWhile (< cir) primes')
+        isPrimes' = 2:3:(filter check [5,7..])
+          where check n = all (\x -> mod n x /= 0) (takeWhile (< cir) isPrimes')
                   where cir = floor . sqrt . fromIntegral $ n
 
 

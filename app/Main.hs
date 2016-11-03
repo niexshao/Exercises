@@ -4,4 +4,4 @@ import Euler
 import OtherStaff
 
 main :: IO ()
-main = print $ "Just for test"
+main = print $ "some thing " 

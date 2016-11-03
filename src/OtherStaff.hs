@@ -14,6 +14,16 @@ import Numeric (showIntAtBase)
 -- >>> newtype Small = Small Int deriving Show
 -- >>> instance Arbitrary Small where arbitrary = Small . (`mod` 100) <$> arbitrary
 
+primes :: [Integer]
+primes = 2:3:(filter isprime [5,7..])
+  where isprime m =
+          let limit = floor . sqrt . fromIntegral $ m
+              lessThan = takeWhile (<= limit) primes
+          in all ((/=0) . (m `rem`)) lessThan
+
+fact :: Integer -> [Integer]
+fact n = filter ((==0) . (n `rem`)) (takeWhile (<n) primes)
+ 
 -- problem 45
 p45 :: [Integer]
 p45 =
@@ -71,12 +81,6 @@ p48 :: Integer
 p48 = sum $ map (\n -> read . reverse . take 10 . reverse . show $ n^n) [1..1000]
 
 -- problem 50 TODO
-primes :: [Integer]
-primes = 2:3:(filter isprime [5,7..])
-  where isprime m =
-          let limit = floor . sqrt . fromIntegral $ m
-              lessThan = takeWhile (<= limit) primes
-          in all ((/=0) . (m `rem`)) lessThan
 
 -- consecutivePrime :: Integer -> Integer
 -- consecutivePrime n =
@@ -173,9 +177,8 @@ p68 = maximum . filter ((==16) . length . show) . fmap convert . filter check . 
          convert = read . concatMap show . concat 
 
 -- problem 69
-
-phi :: Integer -> Int
-phi n = length . filter ((==1) . (gcd n)) $ [1..n-1]
-
 p69 n = 
-  map (\n -> (fromIntegral n) / (fromIntegral (phi n))) [2..n]
+  foldl' (\al@(_, acc) x -> if f x > acc then (x, f x) else al) (0, 0) [2..n]
+  where
+    f m = (fromIntegral m) / (fromIntegral (phi m))
+    phi m = length . filter (\q -> all ((/=0) . rem q) (fact m)) $ [1..m-1] 
