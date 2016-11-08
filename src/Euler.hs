@@ -42,6 +42,7 @@ p18 = maximum . foldl1' cojoin
         sndnum = zipWith (+) acc (tail new)
         part = (zipWith max (tail fstnum) (init sndnum))
       in head fstnum : part  ++ [last sndnum]
+
 -- problem 67
 p67 :: IO ()
 p67 = do
@@ -152,7 +153,7 @@ p25 :: IO ()
 p25 = do
   let digitstest = (==1000) . length . show
       (_, a:_) = break (digitstest . snd) (zip [0..] fibs)
-  putStrLn $ show a
+  print a
 
 -- problem 26
 fractions :: Integer -> String
@@ -165,8 +166,9 @@ fractions n =
 
 p26 :: IO ()
 p26 =
-  putStrLn . show . maximumBy (compare `on` (length . fractions)) $ [1..1000]
+  -- putStrLn . show . maximumBy (compare `on` (length . fractions)) $ [1..1000]
   -- putStrLn . show . maximum . zip (map (length . fractions) [1..1000]) $ [1..]
+  print . maximumBy (compare `on` (length . fractions)) $ [1..1000]
 
 -- copy from github, this works too
 -- but i can't figure out why
@@ -395,5 +397,3 @@ fib :: Int -> Int
 fib n =
   let fibs = 0:1:(zipWith (+) fibs (tail fibs))
   in fibs !! n
-
-
