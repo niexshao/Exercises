@@ -1,4 +1,4 @@
-module CodeWars where
+module CodeWars () where
 
 import Data.Array
 -- permutations

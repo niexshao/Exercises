@@ -2,7 +2,8 @@ module HQuestions where
 
 import Control.Arrow ((&&&))
 import System.Random
-import Data.List (nub, sortBy, group, sort)
+import Data.List 
+import Data.Maybe
 import Data.Function (on)
 import Control.Monad (replicateM)
 
@@ -228,3 +229,178 @@ h49 :: Int -> [String]
 h49 n = replicateM n "01" -- maybe wrong, if the order matters
 
 h50 = undefined
+
+-- prepare data constructure for tree
+-- this shouldn't be visit outside this
+data Tree a = Empty | Branch a (Tree a) (Tree a) deriving (Show, Eq)
+
+tree1 = Branch 'a' (Branch 'b' (leaf 'd')
+                               (leaf 'e'))
+                   (Branch 'c' Empty
+                               (Branch 'f' (leaf 'g')
+                                           Empty))
+-- A binary tree consisting of a root node only
+tree2 = Branch 'a' Empty Empty
+ 
+-- An empty binary tree
+tree3 = Empty
+
+-- A tree of integers
+tree4 = Branch 1 (Branch 2 Empty (Branch 4 Empty Empty))
+                 (Branch 2 Empty Empty)
+leaf :: a -> Tree a
+leaf x = Branch x Empty Empty
+height :: Tree a -> Int
+height Empty = 0
+height (Branch _ li ri) = 1 + max (height li) (height ri)
+add :: a -> Tree a -> [Tree a]
+add x Empty = [leaf x]
+add x (Branch y li ri) =
+  if height li - height ri == 0 
+    then  map (\li' -> Branch y li' ri) (add x li) ++
+          map (Branch y li) (add x ri)
+    else if height li > height ri
+      then map (Branch y li) (add x ri)
+      else map (\li' -> Branch y li' ri) (add x li) 
+h55 :: Int -> [Tree Char]
+h55 0 = [Empty]
+h55 n = nub $ concatMap (add 'x') (h55 (n-1)) 
+-- Too slow
+h55' :: Int -> [Tree Char]
+h55' 0 = [Empty]
+h55' n = 
+  let (q, r) = (n-1) `quotRem` 2
+  in [Branch 'x' left right | i     <- [q .. q+r],
+                              left  <- h55' i,
+                              right <- h55' (n-1-i)]
+image :: Tree a -> Tree a
+image Empty = Empty
+image (Branch x li ri) = Branch x (image ri) (image li)
+h56 :: Eq a => Tree a -> Bool
+h56 Empty = True
+h56 (Branch _ li ri) = 
+  mirror li ri
+  where mirror Empty            Empty            = True
+        mirror (Branch _ l1 r1) (Branch _ l2 r2) = mirror l1 r2 && mirror l2 r1
+        mirror _                _                = False
+
+insertTree :: Ord a => a -> Tree a -> Tree a
+insertTree x Empty = leaf x
+insertTree x al@(Branch y li ri) = 
+  if x == y
+    then al
+    else if x > y
+      then Branch y li (insertTree x ri)
+      else Branch y (insertTree x li) ri
+h57 :: Ord a => [a] -> Tree a
+h57 = foldl (flip insertTree) Empty
+
+h58 :: Int -> [Tree Char]
+h58 n = 
+  let (q, r) = n `quotRem` 2
+  in if r == 0 
+       then [Branch 'x' li (image li) | li <- h58 q]
+       else []
+
+h59 :: Int -> a -> [Tree a]
+h59 0 _ = [Empty]
+h59 1 x = [Branch x Empty Empty]
+h59 n x =
+  [Branch x li ri | (ln, rn) <- [(n-1, n-2), (n-1, n-1), (n-2, n-1)],
+                    li <- h59 ln x,
+                    ri <- h59 rn x]
+
+h90 :: [[Int]]
+h90 = filter isAlone (permutations [1..8])
+  where isAlone li = and [ not (or (zipWith elem li diag)) | 
+                           ind <- [1..8],
+                           let ded = fmap (+ (-ind)) [1..8],
+                           let pos = li !! (ind - 1),
+                           let diag = fmap (\b -> if b == 0 then [] else [pos+b, pos-b]) ded]
+
+type KnightPath = [(Int, Int)]
+h91 :: Int -> (Int, Int) -> [KnightPath]
+h91 size (x, y) = 
+  let from :: (Int, Int) -> KnightPath -> [(Int, Int)]
+      from (a, b) old = filter (`notElem` old) (jump (a, b))
+      next :: KnightPath -> (Int, Int) -> [KnightPath]
+      next old now = if length old == size^2 - 1
+        then (now : old):[]
+        else concatMap (next (now:old)) (from now old)
+      jump :: (Int, Int) -> [(Int, Int)]
+      jump (a, b) = [(col, row) | i <- [-2, -1, 1, 2],
+                                  j <- if abs i == 2 then [-1, 1] else [-2, 2],
+                                  let col = a + i,
+                                  let row = b + j,
+                                  col >= 1 && col <= size && row >= 1 && row <= size]
+  in next [] (x, y) -- too slow
+
+-- just copy from the answers ORZ
+h93 :: [Integer] -> IO ()
+h93 = mapM_ putStrLn . puzzle
+
+data Expr = Const Integer |
+  Binary Op Expr Expr deriving (Eq, Show) 
+data Op = Plus | Minus | Times | Divide deriving (Show, Enum, Eq, Bounded)
+type Equation = (Expr, Expr)
+type Value = Rational
+
+puzzle :: [Integer] -> [String]
+puzzle = map (flip showEquation "") . equations
+
+equations :: [Integer] -> [Equation]
+equations [] = error "no equations for empty list"
+equations [_] = error "no equations for one element list"
+equations xs = [ (e1, e2) | 
+              (ns1, ns2) <- splits xs,
+              (e1, v1)   <- exprs ns1,
+              (e2, v2)   <- exprs ns2,
+              v1 == v2]
+
+exprs :: [Integer] -> [(Expr, Value)]
+exprs [n] = [(Const n, fromIntegral n)]
+exprs xs = [ (Binary op e1 e2, v) | 
+             (ns1, ns2) <- splits xs,
+             (e1, v1)   <- exprs ns1,
+             (e2, v2)   <- exprs ns2,
+             op         <- [minBound .. maxBound],
+             v          <- maybeToList (apply op v1 v2),
+             not (rightAssiable op e2)]
+
+splits :: [a] -> [([a], [a])] -- split list into two non-empty list
+splits xs = tail . init $ (zip (inits xs) (tails xs)) -- xs at least two element
+
+apply :: Op -> Value -> Value -> Maybe Value
+apply Plus v1 v2   = Just (v1 + v2)
+apply Minus v1 v2  = Just (v1 - v2)
+apply Times v1 v2  = Just (v1 * v2)
+apply Divide _ 0   = Nothing
+apply Divide v1 v2 = Just (v1 / v2)
+
+rightAssiable :: Op -> Expr -> Bool
+rightAssiable Plus (Binary Plus _ _)    = True
+rightAssiable Plus (Binary Minus _ _)   = True
+rightAssiable Times (Binary Times _ _)  = True
+rightAssiable Times (Binary Divide _ _) = True
+rightAssiable _ _                       = False
+
+showEquation :: Equation -> ShowS
+showEquation (l, r) = showEquPrec 0 l . showString "=" . showEquPrec 0 r
+
+showEquPrec :: Int -> Expr -> ShowS
+showEquPrec _ (Const n) = shows n
+showEquPrec p (Binary op e1 e2) = showParen (p > op_pre) $
+  showEquPrec op_pre e1 . showString (name op) . showEquPrec (op_pre + 1) e2
+  where op_pre = precendence op
+
+name :: Op -> String
+name Plus   = "+"
+name Minus  = "-"
+name Times  = "*"
+name Divide = "/"
+
+precendence :: Op -> Int
+precendence Plus   = 6
+precendence Minus  = 6
+precendence Times  = 7
+precendence Divide = 7
