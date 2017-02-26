@@ -2,11 +2,12 @@
 module CodeWars () where
 
 import Data.Array
-import Data.List (nub, sort, (\\), transpose)
+import Data.List (nub, sort, (\\), transpose, groupBy, sortBy)
 import qualified Data.Array.IArray as Arr
 import Data.Array.IArray (IArray)
 import Text.Parsec
 import Data.Char (toUpper, isAlpha, isDigit)
+import Data.Function (on)
 -- permutations
 selection :: [a] -> [(a, [a])]
 selection [] = []
@@ -372,3 +373,75 @@ fib :: Integer -> Integer
 fib n | n < 0 = - (fib (-n))
       | otherwise = fibs !! (fromIntegral n)
       where fibs = 0:1:zipWith (+) fibs (tail fibs)
+
+spiralize :: Int -> [[Int]]
+spiralize 2 = [[1, 1], [0, 1]]
+spiralize 3 = [[1, 1, 1], [0, 0, 1], [1, 1, 1]]
+spiralize 4 = [[1,1,1,1], [0,0,0,1], [1,0,0,1], [1,1,1,1]]
+spiralize 5 = [[1,1,1,1,1], [0,0,0,0,1], [1,1,1,0,1], [1,0,0,0,1], [1,1,1,1,1]]
+spiralize n =
+  let first : rest = spiralize (n-4)
+  in (replicate n 1) :
+     (reverse . (1 : ) . replicate (n-1) $ 0) :
+     ([1, 1] ++ first ++ [0, 1]) :
+     [1 : 0 : col ++ [0, 1] | col <- rest] ++ 
+     [1 : replicate (n-2) 0 ++ [1] , replicate n 1]
+showSpial :: [[Int]] -> String
+showSpial spi = unlines [[if elem == 0 then '.' else '0' | elem <- row] | row <- spi]
+
+
+atom :: Stream s m Char => ParsecT s u m (String, Int)
+atom = do
+  first <- upper
+  rest <- many lower
+  num <- many digit
+  if null num 
+    then return (first : rest, 1)
+    else return (first : rest, read num)
+atomWithParen :: Stream s m Char => ParsecT s u m [(String, Int)]
+atomWithParen = do
+  open' <- lookAhead (oneOf "([{")
+  let (open, close) = case open' of
+                        '(' -> ('(', ')')
+                        '{' -> ('{', '}')
+                        '[' -> ('[', ']')
+  inner <- between (char open) (char close) molecule
+  num <- many digit
+  let num' = if null num then 1 else read num
+  return $ fmap (\(a, b) -> (a, b * num')) inner
+molecule :: Stream s m Char => ParsecT s u m [(String, Int)]
+molecule = fmap (group . concat) $ many1 ((many1 atom) <|> atomWithParen)
+  where change li = (fst . head $ li, sum . fmap snd $ li)
+        group = fmap change . groupBy ((==) `on` fst) . sort
+parseMolecule :: String -> Either String [(String, Int)]
+parseMolecule str = 
+  case parse molecule "" str of
+    Right val -> Right val
+    Left err  -> Left "Not a valid molecule"
+
+-- | Roman Numerals Encoders
+romanEncoder :: Int -> String
+romanEncoder n | n < 0 = error "number should not be less than 0"
+romanEncoder n | n > 4000 = error "number should not be greater than 4000"
+romanEncoder n = encode n romans
+  where
+    encode n [(1, s)] = concat (replicate n s)
+    encode n ((a, s) : rest) = 
+      let (x, y) = quotRem n a
+      in if 1 <= x && x <=3
+           then concat (replicate x s) ++ encode y rest
+           else encode n rest
+    romans :: [(Int, String)]
+    romans = [ (1000, "M")
+             , (900, "CM")
+             , (500,  "D")
+             , (400, "CD")
+             , (100,  "C")
+             , (90,  "XC")
+             , (50,   "L")
+             , (40,  "XL")
+             , (10,   "X")
+             , (9,   "IX")
+             , (5,    "V")
+             , (4,   "IV")
+             , (1,    "I")]

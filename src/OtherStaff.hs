@@ -182,3 +182,5 @@ p69 n =
   where
     f m = (fromIntegral m) / (fromIntegral (phi m))
     phi m = length . filter (\q -> all ((/=0) . rem q) (fact m)) $ [1..m-1] 
+
+-- | Just fun
