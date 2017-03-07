@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeOperators, MultiParamTypeClasses, FlexibleInstances, FlexibleContexts, DeriveFunctor #-}
-module ALaCarte where
+module ALaCarte () where
 
 data Expr f = In (f (Expr f))
 

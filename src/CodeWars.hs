@@ -8,6 +8,8 @@ import Data.Array.IArray (IArray)
 import Text.Parsec
 import Data.Char (toUpper, isAlpha, isDigit)
 import Data.Function (on)
+import Data.Monoid (First(..))
+import Data.Foldable (Foldable(..))
 -- permutations
 selection :: [a] -> [(a, [a])]
 selection [] = []
@@ -445,3 +447,18 @@ romanEncoder n = encode n romans
              , (5,    "V")
              , (4,   "IV")
              , (1,    "I")]
+
+firstNotNull :: Foldable t => t (Maybe a) -> Maybe a
+firstNotNull = getFirst . foldMap First
+
+decompose :: Integer -> Maybe [Integer]
+decompose m = 
+  let upper = m-1
+      lower = 1 -- ceiling . sqrt . fromIntegral $ (2*m) -- a lower bound approximately
+      de :: Integer -> Integer -> Maybe [Integer]
+      de m n | m == n^2 = Just [n]
+      de m n =
+        let rest = m - n^2
+            n' = min (n-1) . floor . sqrt . fromIntegral $ rest
+        in (fmap (n:)) . firstNotNull . map (de rest) $ [n', n'-1 .. 1]
+  in firstNotNull . map (de (m^2)) $ [upper, upper-1.. lower]

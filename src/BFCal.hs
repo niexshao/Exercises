@@ -1,3 +1,5 @@
+module BFCal () where
+
 import Control.Monad.State
 import Control.Monad.Identity
 import System.Random (StdGen, random, randomR, Random, newStdGen)
